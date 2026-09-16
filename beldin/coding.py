@@ -89,6 +89,58 @@ def collect(root):
             result[rel]=data
     return result
 
+def collect_validation(root):
+    """Collect trusted project files for isolated validation only.
+
+    Unlike collect(), this is never exposed through model tools. Runtime,
+    VCS, mutable service data, and local operator configuration stay excluded.
+    """
+    root=Path(root); no_links(root)
+    result={}; size=0
+    validation_exclude=EXCLUDE-{'origin'}
+    for current,dirs,files in os.walk(root,followlinks=False):
+        for d in list(dirs):
+            if d.lower() in validation_exclude or d.startswith('.'):
+                dirs.remove(d)
+            else:
+                no_links(Path(current)/d)
+        for name in sorted(files):
+            p=Path(current)/name
+            rel=p.relative_to(root).as_posix()
+            if name.startswith('.') or name.lower()=='coding-projects.json' or name.lower()=='config.local.json':
+                continue
+            no_links(p)
+            if p.stat().st_size>MAX_FILE:
+                raise CodingError('file_too_large: '+rel)
+            data=p.read_bytes()
+            try:
+                data.decode('utf-8')
+            except UnicodeDecodeError:
+                continue
+            size+=len(data)
+            if size>MAX_TOTAL or len(result)>=400:
+                raise CodingError('project_too_large')
+            result[rel]=data
+    return result
+
+def put_validation(root,files):
+    """Write trusted validation files without exposing protected paths to model tools."""
+    root=Path(root).absolute()
+    for name,data in files.items():
+        if not isinstance(name,str) or not name or '\\' in name:
+            raise CodingError('invalid_validation_path')
+        parts=name.split('/')
+        if PureWindowsPath(name).is_absolute() or any(
+            part in ('','.','..') or ':' in part or part.endswith((' ','.'))
+            for part in parts
+        ):
+            raise CodingError('invalid_validation_path')
+        p=root.joinpath(*parts)
+        if not p.resolve().is_relative_to(root.resolve()):
+            raise CodingError('outside_validation_workspace')
+        p.parent.mkdir(parents=True,exist_ok=True)
+        p.write_bytes(data)
+
 def put(root,files):
     for name,data in files.items():
         p=safe_path(root,name); p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(data)
@@ -193,7 +245,9 @@ class CodingAgent:
     def test(self,t,command='unittest',files=None):
         if command not in COMMANDS: raise CodingError('command_requires_operator_unsupported')
         files=files if files is not None else collect(t['_home']/'dev')
-        execution=t['_home']/('run-'+secrets.token_hex(6)); put(execution,files)
+        validation_files=collect_validation(Path(self.projects[t['project']]['path']))
+        validation_files.update(files)
+        execution=t['_home']/('run-'+secrets.token_hex(6)); put_validation(execution,validation_files)
         self.event(t,'test',command=COMMANDS[command])
         result=self.runner(self.runtime,execution,COMMANDS[command],cancel=t['_cancel'],timeout=60)
         t['result']=result; self.event(t,'test_result',result=result)

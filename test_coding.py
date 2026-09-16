@@ -29,6 +29,36 @@ class CodingTests(unittest.TestCase):
     def test_path_escape_and_windows_aliases(self):
         for name in ('../calc.py','/calc.py','C:/calc.py','a\\b','a:b','a/../b','NUL','a.','x/CON.txt','.git/a','config.local.json','coding-projects.json','token.txt','runtime/a'):
             with self.subTest(name=name),self.assertRaises(CodingError): safe_path(self.project,name)
+    def test_validation_has_required_protected_files_without_exposing_them_to_model(self):
+        (self.project/'secret_policy.py').write_text('VALUE = 7\n')
+        (self.project/'config.creator.json').write_text('{"enabled": true}\n')
+        origin=self.project/'origin'; origin.mkdir()
+        (origin/'MANIFEST.json').write_text('{"version": 1}\n')
+
+        self.t=self.agent.create('demo')
+
+        visible=self.agent.tool(self.t,'list',{})['files']
+        self.assertEqual(visible,['calc.py'])
+
+        seen={}
+        def runner(runtime,workspace,argv,**kwargs):
+            workspace=Path(workspace)
+            seen['secret']=(workspace/'secret_policy.py').read_text()
+            seen['config']=(workspace/'config.creator.json').read_text()
+            seen['origin']=(workspace/'origin'/'MANIFEST.json').read_text()
+            return dict(OK)
+
+        self.agent.runner=runner
+        self.edit()
+        proposed=self.agent.diff(self.t)
+        self.agent.test(self.t)
+
+        self.assertIn('VALUE = 7',seen['secret'])
+        self.assertIn('"enabled": true',seen['config'])
+        self.assertIn('"version": 1',seen['origin'])
+        self.assertTrue(self.t['validation']['passed'])
+        self.assertEqual(self.t['validation']['digest'],proposed['digest'])
+
     def test_hardlinks_rejected(self):
         os.link(self.project/'calc.py',self.project/'linked.py')
         with self.assertRaises(CodingError): collect(self.project)
