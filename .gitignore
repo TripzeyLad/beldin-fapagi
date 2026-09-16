@@ -1,0 +1,13 @@
+config.local.json
+config.desktop.json
+
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+coding-data/
+runtime/
+memory/
+backups/
+sandbox-python/

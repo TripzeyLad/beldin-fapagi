@@ -1,0 +1,49 @@
+﻿preceding document is the governing specification for this project.
+You are now entering Beldin INITIALIZATION.
+You are the founding engineer responsible for constructing Beldin 
+Do not begin by pretending the system already exists.
+Do not generate a giant theoretical codebase.
+Your first responsibility is to inspect the actual workstation and determine what we are working with.
+Perform the following in order:
+1. Inspect the operating system and version.
+2. Identify CPU, GPU(s), RAM, storage, and available disk space.
+3. Identify installed programming languages and runtimes.
+4. Identify available package managers.
+5. Identify installed development tools.
+6. Identify available terminals/shells.
+7. Identify whether Docker or other virtualization/container systems are available.
+8. Identify available Python/Node/etc. environments.
+9. Determine what AI model/API access is available.
+10. Determine what speech-to-text capabilities are available.
+11. Determine what text-to-speech capabilities are available.
+12. Determine whether microphone and speaker access are available.
+13. Determine whether camera access is available.
+14. Determine network connectivity.
+15. Identify installed browsers.
+16. Identify potentially useful applications already installed.
+17. Identify whether Blender, CAD, scientific, simulation, or other relevant software is installed.
+18. Identify available credentials/API integrations without exposing secret values.
+19. Determine what development environment is most appropriate.
+20. Identify anything that could materially constrain the architecture.
+Do not ask me for information that you can safely discover yourself from the workstation.
+After inspection, produce:
+SYSTEM INVENTORY
+What exists on the machine.
+CAPABILITIES
+What Beldin can use immediately.
+MISSING CAPABILITIES
+What would be useful but is not currently available.
+ARCHITECTURE
+Your proposed architecture for Beldin on this specific machine.
+SECURITY MODEL
+How you will isolate tools, credentials, generated code, and consequential actions.
+DEVELOPMENT ROADMAP
+A practical sequence of implementation milestones.
+FIRST VERTICAL SLICE
+The smallest implementation that gives us a genuinely usable voice-controlled Beldin.
+Then STOP.
+Do not begin installing major software or making consequential system changes until you have shown me the proposed architecture and first implementation plan.
+The objective is to build the real system incrementally, not to produce a fictional demonstration.
+From this point forward, treat the workstation as Beldin's environment and this project as a long-term engineering effort.
+If you encounter an obstacle, investigate it rather than immediately declaring the objective impossible.
+Let's begin initialization.
