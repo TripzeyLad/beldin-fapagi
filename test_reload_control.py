@@ -1,12 +1,17 @@
+import hashlib
 import pathlib
 import unittest
 
 class ReloadControlTests(unittest.TestCase):
     def setUp(self):
-        out=pathlib.Path(__file__).parents[4].joinpath('2026-09-12','continue-the-beldin-project-from-the','outputs')
+        out=pathlib.Path(__file__).parent/'reload-reference'
         self.text=(out/'BELDIN_VERIFIED_RELOAD.ps1').read_text(encoding='utf-8')
         self.installer=(out/'INSTALL_BELDIN_RELOAD_TASK.ps1').read_text(encoding='utf-8')
         self.docs=(out/'BELDIN_RELOAD_CONTROL.md').read_text(encoding='utf-8')
+    def test_reload_fixture_matches_pinned_identity(self):
+        digest=hashlib.sha256((pathlib.Path(__file__).parent/'reload-reference'/'BELDIN_VERIFIED_RELOAD.ps1').read_bytes()).hexdigest()
+        self.assertEqual(digest,'fee8fab1c997c40afd64b7d7f63fce97949605e0715fbc1b15ed7418f26c8e4e')
+
     def test_fixed_identity_and_no_inputs(self):
         self.assertIn('LocalPort 8765',self.text)
         self.assertIn("if($old -eq 1860)",self.text)
