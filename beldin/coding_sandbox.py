@@ -88,13 +88,20 @@ def run(runtime, workspace, argv, cancel=None, timeout=60):
         if not k.UpdateProcThreadAttribute(attrs,0,0x20009,C.byref(sc),C.sizeof(sc),None,None): raise C.WinError(C.get_last_error())
         sx=SX(); sx.si.cb=C.sizeof(sx); sx.attrs=C.cast(attrs,ptr)
         # Output redirection is inside the sandbox, so no host handles are inherited.
-        bootstrap="import os,runpy,sys;sys.stdout=open('_stdout.txt','w',buffering=1);sys.stderr=open('_stderr.txt','w',buffering=1);sys.argv="+repr(argv)+";runpy.run_module(sys.argv.pop(0),run_name='__main__',alter_sys=True)"
+        # AppContainer rewrites TEMP/TMP to its package-private AC\Temp even when
+        # CreateProcess receives different values, so reset them inside the child
+        # to the already ACL-granted disposable workspace.  Python tempfile creates
+        # private directories with mode 0o700; on Windows that restrictive mode
+        # conflicts with the AppContainer SID and fails with ERROR_ACCESS_DENIED.
+        # Use inherited directory permissions for that mode only.  The AppContainer
+        # and workspace ACL remain the security boundary.
+        bootstrap="import os,runpy,sys;os.environ['TEMP']=os.getcwd();os.environ['TMP']=os.getcwd();_mkdir=os.mkdir;os.mkdir=lambda path,mode=0o777,*a,**kw:_mkdir(path,0o777 if mode==0o700 else mode,*a,**kw);sys.stdout=open('_stdout.txt','w',buffering=1);sys.stderr=open('_stderr.txt','w',buffering=1);sys.argv="+repr(argv)+";runpy.run_module(sys.argv.pop(0),run_name='__main__',alter_sys=True)"
         command=C.create_unicode_buffer(subprocess.list2cmdline([str(runtime/'python.exe'),'-I','-B','-c',bootstrap]))
         env={'SystemRoot':os.environ['SystemRoot'],'WINDIR':os.environ['SystemRoot'],
              'USERPROFILE':os.environ.get('USERPROFILE',''),
              'LOCALAPPDATA':os.environ.get('LOCALAPPDATA',''),
              'TEMP':str(workspace),'TMP':str(workspace),
-             'PATH':str(runtime),'PYTHONIOENCODING':'utf-8'}
+             'PATH':str(runtime),'PYTHONIOENCODING':'utf-8','BELDIN_CODING_SANDBOX':'1'}
         environment=C.create_unicode_buffer('\0'.join(k+'='+v for k,v in sorted(env.items()))+'\0\0')
         if not k.CreateProcessW(str(runtime/'python.exe'),command,None,None,False,
                                 0x80000|0x400|0x08000000|4,environment,str(workspace),C.byref(sx),C.byref(pi)):
