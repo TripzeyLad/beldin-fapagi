@@ -17,7 +17,7 @@ from .coding_sandbox import run as sandbox_run
 
 MAX_FILE=65536
 MAX_TOTAL=2*1024*1024
-EXCLUDE={'runtime','memory','backups','origin','sandbox-python','coding-data','__pycache__','.git','.venv','node_modules'}
+EXCLUDE={'runtime','memory','backups','origin','reload-reference','sandbox-python','coding-data','__pycache__','.git','.venv','node_modules'}
 COMMANDS={'unittest':['unittest','discover','-v'], 'compile':['compileall','-q','.']}
 MODEL_TOOLS=['list','read','search','edit','patch','test','diff','finish']
 ZERO_SEARCH_INTERVENTION=3
@@ -97,7 +97,7 @@ def collect_validation(root):
     """
     root=Path(root); no_links(root)
     result={}; size=0
-    validation_exclude=EXCLUDE-{'origin'}
+    validation_exclude=EXCLUDE-{'origin','reload-reference'}
     for current,dirs,files in os.walk(root,followlinks=False):
         for d in list(dirs):
             if d.lower() in validation_exclude or d.startswith('.'):

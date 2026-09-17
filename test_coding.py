@@ -34,6 +34,8 @@ class CodingTests(unittest.TestCase):
         (self.project/'config.creator.json').write_text('{"enabled": true}\n')
         origin=self.project/'origin'; origin.mkdir()
         (origin/'MANIFEST.json').write_text('{"version": 1}\n')
+        reload_reference=self.project/'reload-reference'; reload_reference.mkdir()
+        (reload_reference/'BELDIN_VERIFIED_RELOAD.ps1').write_text('Write-Output "verified reload"\n')
 
         self.t=self.agent.create('demo')
 
@@ -46,6 +48,7 @@ class CodingTests(unittest.TestCase):
             seen['secret']=(workspace/'secret_policy.py').read_text()
             seen['config']=(workspace/'config.creator.json').read_text()
             seen['origin']=(workspace/'origin'/'MANIFEST.json').read_text()
+            seen['reload_reference']=(workspace/'reload-reference'/'BELDIN_VERIFIED_RELOAD.ps1').read_text()
             return dict(OK)
 
         self.agent.runner=runner
@@ -56,6 +59,7 @@ class CodingTests(unittest.TestCase):
         self.assertIn('VALUE = 7',seen['secret'])
         self.assertIn('"enabled": true',seen['config'])
         self.assertIn('"version": 1',seen['origin'])
+        self.assertIn('verified reload',seen['reload_reference'])
         self.assertTrue(self.t['validation']['passed'])
         self.assertEqual(self.t['validation']['digest'],proposed['digest'])
 
