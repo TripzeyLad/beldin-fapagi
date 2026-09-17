@@ -10,6 +10,8 @@ import os
 from pathlib import Path, PureWindowsPath
 import re
 import secrets
+import shutil
+import tempfile
 import threading
 import time
 from urllib.request import Request, urlopen
@@ -171,6 +173,7 @@ class CodingAgent:
         self.models=cfg.get('models',['qwen3:8b'])
         self.runtime=Path(cfg.get('python_runtime',self.root/'sandbox-python')).resolve()
         self.data=Path(cfg.get('data_root',self.root/'coding-data')).resolve()
+        self.execution_root=Path(cfg.get('execution_root',Path(tempfile.gettempdir())/'beldin-coding-runs')).resolve()
         self.tasks={}; self.lock=threading.RLock(); self.runner=runner or sandbox_run
         self.model_call=model_call or self.ollama
         for project in self.projects.values():
@@ -247,9 +250,12 @@ class CodingAgent:
         files=files if files is not None else collect(t['_home']/'dev')
         validation_files=collect_validation(Path(self.projects[t['project']]['path']))
         validation_files.update(files)
-        execution=t['_home']/('run-'+secrets.token_hex(6)); put_validation(execution,validation_files)
+        execution=self.execution_root/('run-'+secrets.token_hex(6)); put_validation(execution,validation_files)
         self.event(t,'test',command=COMMANDS[command])
-        result=self.runner(self.runtime,execution,COMMANDS[command],cancel=t['_cancel'],timeout=60)
+        try:
+            result=self.runner(self.runtime,execution,COMMANDS[command],cancel=t['_cancel'],timeout=60)
+        finally:
+            shutil.rmtree(execution)
         t['result']=result; self.event(t,'test_result',result=result)
         current_digest=digest(files)
         zero_tests=_test_output_has_zero_tests(result)

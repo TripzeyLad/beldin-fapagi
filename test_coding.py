@@ -63,6 +63,23 @@ class CodingTests(unittest.TestCase):
         self.assertTrue(self.t['validation']['passed'])
         self.assertEqual(self.t['validation']['digest'],proposed['digest'])
 
+    def test_validation_uses_short_disposable_execution_root(self):
+        seen={}
+        def runner(runtime,workspace,argv,**kwargs):
+            workspace=Path(workspace)
+            seen['workspace']=workspace
+            seen['exists_during']=workspace.is_dir()
+            return dict(OK)
+
+        self.agent.runner=runner
+        self.edit()
+        self.agent.test(self.t)
+
+        workspace=seen['workspace']
+        self.assertTrue(seen['exists_during'])
+        self.assertTrue(workspace.is_relative_to(self.agent.execution_root))
+        self.assertFalse(workspace.is_relative_to(self.t['_home']))
+        self.assertFalse(workspace.exists())
     def test_hardlinks_rejected(self):
         os.link(self.project/'calc.py',self.project/'linked.py')
         with self.assertRaises(CodingError): collect(self.project)
